@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>御主鉴定 — FGO猜从者挑战</title>
+<style>
+/* ========== CSS Reset & Base ========== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --fgo-dark: #0a0e1a;
+  --fgo-navy: #0f1628;
+  --fgo-blue: #1a2744;
+  --fgo-gold: #c9a84c;
+  --fgo-gold-light: #e8d48b;
+  --fgo-gold-dim: #8b7432;
+  --fgo-correct: #2ecc40;
+  --fgo-close: #f1a30b;
+  --fgo-wrong: #6b3048;
+  --fgo-wrong-text: #c47a8f;
+  --fgo-text: #e8e0d0;
+  --fgo-text-dim: #9a8e7a;
+  --fgo-card-bg: rgba(20, 28, 50, 0.85);
+  --fgo-border: rgba(201, 168, 76, 0.3);
+  --fgo-glow: rgba(201, 168, 76, 0.15);
+  --star5: #f5d76e;
+  --star4: #c97fff;
+  --star3: #4fc3f7;
+  --star2: #8bc34a;
+  --star1: #a0896e;
+}
+
+@font-face {
+  font-family: 'FGO-Title';
+  src: local('Noto Serif SC'), local('Source Han Serif CN'), local('SimSun');
+}
+
+body {
+  font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--fgo-dark);
+  color: var(--fgo-text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ========== Background Effect ========== */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: 
+    radial-gradient(ellipse at 20% 50%, rgba(26, 39, 68, 0.6) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(100, 60, 120, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 100%, rgba(201, 168, 76, 0.05) 0%, transparent 40%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Animated particles */
+.particles {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.particle {
+  position: absolute;
+  width: 2px; height: 2px;
+  background: var(--fgo-gold);
+  border-radius: 50%;
+  opacity: 0;
+  animation: floatUp linear infinite;
+}
+@keyframes floatUp {
+  0% { opacity: 0; transform: translateY(100vh) scale(0.5); }
+  20% { opacity: 0.8; }
+  80% { opacity: 0.3; }
+  100% { opacity: 0; transform: translateY(-10vh) scale(1.2); }
+}
+
+/* ========== Layout ========== */
+.app-container {
+  position: relative;
+  z-index: 1;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 16px;
+  min-height: 100vh;
+}
+
+/* ========== Header ========== */
+.header {
+  text-align: center;
+  padding: 30px 0 20px;
+  position: relative;
+}
+.header::after {
+  content: '';
+  display: block;
+  width: 200px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--fgo-gold), transparent);
+  margin: 16px auto 0;
+}
+.title {
+  font-family: 'FGO-Title', serif;
+  font-size: 2.2em;
+  font-weight: 700;
+  background: linear-gradient(180deg, #f5e6a8 0%, #c9a84c 50%, #a07830 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+  letter-spacing: 6px;
+  position: relative;
+}
+.title::before, .title::after {
+  content: '◆';
+  font-size: 0.4em;
+  vertical-align: middle;
+  -webkit-text-fill-color: var(--fgo-gold-dim);
+  margin: 0 8px;
+}
+.subtitle {
+  color: var(--fgo-text-dim);
+  font-size: 0.85em;
+  margin-top: 8px;
+  letter-spacing: 2px;
+}
+
+/* ========== Game Mode Tabs ========== */
+.mode-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 16px 0 24px;
+}
+.mode-tab {
+  padding: 8px 24px;
+  border: 1px solid var(--fgo-border);
+  border-radius: 4px;
+  background: var(--fgo-card-bg);
+  color: var(--fgo-text-dim);
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: all 0.3s;
+  letter-spacing: 1px;
+}
+.mode-tab:hover { border-color: var(--fgo-gold-dim); color: var(--fgo-text); }
+.mode-tab.active {
+  border-color: var(--fgo-gold);
+  color: var(--fgo-gold);
+  background: rgba(201, 168, 76, 0.1);
+  box-shadow: 0 0 12px var(--fgo-glow);
+}
+
+/* ========== Stats Bar ========== */
+.stats-bar {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 20px;
+  font-size: 0.85em;
+}
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fgo-text-dim);
+}
+.stat-value {
+  color: var(--fgo-gold-light);
+  font-weight: 600;
+  font-size: 1.1em;
+}
+
+/* ========== Search Area ========== */
+.search-area {
+  position: relative;
+  margin-bottom: 24px;
+}
+.search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--fgo-border);
+  border-radius: 6px;
+  background: var(--fgo-card-bg);
+  overflow: visible;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.search-wrapper:focus-within {
+  border-color: var(--fgo-gold);
+  box-shadow: 0 0 16px var(--fgo-glow);
+}
+.search-icon {
+  padding: 0 12px;
+  color: var(--fgo-gold-dim);
+  font-size: 1.2em;
+}
+.search-input {
+  flex: 1;
+  padding: 14px 12px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--fgo-text);
+  font-size: 1em;
+  font-family: inherit;
+}
+.search-input::placeholder { color: var(--fgo-text-dim); }
+.search-input:disabled { opacity: 0.5; }
+.attempt-counter {
+  padding: 0 16px;
+  color: var(--fgo-text-dim);
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+.attempt-counter .current { color: var(--fgo-gold); font-weight: 600; }
+
+/* ========== Autocomplete Dropdown ========== */
+.autocomplete {
+  position: absolute;
+  top: 100%;
+  left: 0; right: 0;
+  background: #141c32;
+  border: 1px solid var(--fgo-border);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 100;
+  display: none;
+}
+.autocomplete.show { display: block; }
+.ac-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid rgba(201, 168, 76, 0.08);
+}
+.ac-item:hover, .ac-item.selected { background: rgba(201, 168, 76, 0.12); }
+.ac-item:last-child { border-bottom: none; }
+.ac-avatar {
+  width: 40px; height: 40px;
+  border-radius: 4px;
+  border: 1px solid var(--fgo-border);
+  object-fit: cover;
+  background: var(--fgo-navy);
+}
+.ac-info { flex: 1; }
+.ac-name { font-size: 0.95em; color: var(--fgo-text); }
+.ac-meta { font-size: 0.75em; color: var(--fgo-text-dim); margin-top: 2px; }
+.ac-stars { color: var(--fgo-gold); font-size: 0.8em; }
+
+/* ========== Hint Columns Header ========== */
+.hint-header {
+  display: grid;
+  grid-template-columns: 56px 1fr 70px 70px 70px 70px 70px 70px;
+  gap: 6px;
+  padding: 8px 6px;
+  margin-bottom: 8px;
+  font-size: 0.75em;
+  color: var(--fgo-text-dim);
+  text-align: center;
+  letter-spacing: 1px;
+  border-bottom: 1px solid var(--fgo-border);
+}
+.hint-header span:first-child { text-align: left; }
+.hint-header span:nth-child(2) { text-align: left; }
+
+/* ========== Guess Row ========== */
+.guess-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+
+.guess-row {
+  display: grid;
+  grid-template-columns: 56px 1fr 70px 70px 70px 70px 70px 70px;
+  gap: 6px;
+  animation: slideIn 0.4s ease-out;
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.guess-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 4px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  text-align: center;
+  min-height: 52px;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+  line-height: 1.2;
+  word-break: break-all;
+}
+.guess-cell.correct {
+  background: rgba(46, 204, 64, 0.25);
+  border: 1px solid rgba(46, 204, 64, 0.5);
+  color: #a5ffa5;
+}
+.guess-cell.close {
+  background: rgba(241, 163, 11, 0.25);
+  border: 1px solid rgba(241, 163, 11, 0.4);
+  color: #ffe0a0;
+}
+.guess-cell.wrong {
+  background: rgba(107, 48, 72, 0.35);
+  border: 1px solid rgba(107, 48, 72, 0.5);
+  color: var(--fgo-wrong-text);
+}
+.guess-cell .arrow { font-size: 0.7em; margin-left: 2px; opacity: 0.7; }
+
+.guess-avatar {
+  width: 48px; height: 48px;
+  border-radius: 4px;
+  object-fit: cover;
+  border: 2px solid var(--fgo-border);
+}
+.guess-name-cell {
+  justify-content: flex-start;
+  padding-left: 8px;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+/* Cell flip animation */
+.guess-cell.flip-in {
+  animation: flipIn 0.5s ease-out;
+}
+@keyframes flipIn {
+  0% { transform: rotateX(90deg); opacity: 0; }
+  100% { transform: rotateX(0); opacity: 1; }
+}
+
+/* ========== Result Panel ========== */
+.result-panel {
+  display: none;
+  text-align: center;
+  padding: 32px 20px;
+  margin: 20px 0;
+  border: 1px solid var(--fgo-border);
+  border-radius: 8px;
+  background: var(--fgo-card-bg);
+  animation: fadeIn 0.6s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.result-panel.show { display: block; }
+
+.result-icon { font-size: 3em; margin-bottom: 12px; }
+.result-title {
+  font-family: 'FGO-Title', serif;
+  font-size: 1.6em;
+  margin-bottom: 8px;
+}
+.result-title.win { color: var(--fgo-gold-light); }
+.result-title.lose { color: var(--fgo-wrong-text); }
+.result-servant-name {
+  font-size: 1.2em;
+  color: var(--fgo-gold);
+  margin: 12px 0;
+}
+.result-detail { color: var(--fgo-text-dim); font-size: 0.9em; line-height: 1.6; }
+
+.result-servant-card {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid var(--fgo-gold-dim);
+  border-radius: 8px;
+  background: rgba(201, 168, 76, 0.05);
+}
+.result-servant-img {
+  width: 120px; height: 120px;
+  border-radius: 8px;
+  border: 2px solid var(--fgo-gold);
+  object-fit: cover;
+  margin-bottom: 8px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 28px;
+  border: 1px solid var(--fgo-gold);
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(201, 168, 76, 0.2), rgba(201, 168, 76, 0.05));
+  color: var(--fgo-gold-light);
+  font-size: 0.95em;
+  cursor: pointer;
+  transition: all 0.3s;
+  letter-spacing: 2px;
+  margin-top: 16px;
+  font-family: inherit;
+}
+.btn:hover {
+  background: linear-gradient(180deg, rgba(201, 168, 76, 0.35), rgba(201, 168, 76, 0.15));
+  box-shadow: 0 0 20px var(--fgo-glow);
+  transform: translateY(-1px);
+}
+
+/* ========== Legend ========== */
+.legend {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin: 20px 0;
+  font-size: 0.78em;
+  flex-wrap: wrap;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--fgo-text-dim);
+}
+.legend-dot {
+  width: 14px; height: 14px;
+  border-radius: 3px;
+}
+.legend-dot.correct { background: rgba(46, 204, 64, 0.4); border: 1px solid rgba(46, 204, 64, 0.6); }
+.legend-dot.close { background: rgba(241, 163, 11, 0.4); border: 1px solid rgba(241, 163, 11, 0.5); }
+.legend-dot.wrong { background: rgba(107, 48, 72, 0.5); border: 1px solid rgba(107, 48, 72, 0.6); }
+
+/* ========== Footer ========== */
+.footer {
+  text-align: center;
+  padding: 30px 0 20px;
+  color: var(--fgo-text-dim);
+  font-size: 0.75em;
+  border-top: 1px solid rgba(201, 168, 76, 0.1);
+  margin-top: 40px;
+}
+.footer a { color: var(--fgo-gold-dim); text-decoration: none; }
+.footer a:hover { color: var(--fgo-gold); }
+
+/* ========== Scrollbar ========== */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--fgo-gold-dim); border-radius: 2px; }
+
+/* ========== Responsive ========== */
+@media (max-width: 700px) {
+  .hint-header, .guess-row {
+    grid-template-columns: 44px 1fr 54px 54px 54px 54px 54px 54px;
+    gap: 3px;
+  }
+  .guess-cell { font-size: 0.7em; min-height: 46px; padding: 6px 2px; }
+  .guess-avatar { width: 40px; height: 40px; }
+  .hint-header { font-size: 0.65em; }
+  .title { font-size: 1.6em; letter-spacing: 3px; }
+}
+@media (max-width: 500px) {
+  .hint-header, .guess-row {
+    grid-template-columns: 40px 1fr 46px 46px 46px 46px 46px 46px;
+    gap: 2px;
+  }
+  .guess-cell { font-size: 0.65em; min-height: 42px; }
+  .app-container { padding: 8px; }
+}
+
+/* ========== Loading Screen ========== */
+.loading-screen {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--fgo-dark);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.6s;
+}
+.loading-screen.hide { opacity: 0; pointer-events: none; }
+.loading-spinner {
+  width: 48px; height: 48px;
+  border: 2px solid var(--fgo-border);
+  border-top-color: var(--fgo-gold);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text {
+  margin-top: 16px;
+  color: var(--fgo-gold-dim);
+  font-size: 0.9em;
+  letter-spacing: 2px;
+}
+
+/* ========== How to Play Modal ========== */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--fgo-navy);
+  border: 1px solid var(--fgo-gold-dim);
+  border-radius: 8px;
+  max-width: 520px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 28px;
+}
+.modal h2 {
+  font-family: 'FGO-Title', serif;
+  color: var(--fgo-gold-light);
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 1.3em;
+  letter-spacing: 2px;
+}
+.modal p, .modal li {
+  color: var(--fgo-text-dim);
+  font-size: 0.88em;
+  line-height: 1.8;
+  margin-bottom: 8px;
+}
+.modal strong { color: var(--fgo-text); }
+.modal .example-row {
+  display: flex;
+  gap: 6px;
+  margin: 10px 0;
+}
+.modal .example-cell {
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 0.8em;
+}
+.help-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--fgo-gold-dim);
+  background: var(--fgo-card-bg);
+  color: var(--fgo-gold);
+  font-size: 1.2em;
+  cursor: pointer;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+.help-btn:hover { border-color: var(--fgo-gold); box-shadow: 0 0 12px var(--fgo-glow); }
+</style>
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">灵基数据加载中…</div>
+</div>
+
+<!-- Particles -->
+<div class="particles" id="particles"></div>
+
+<!-- Main App -->
+<div class="app-container">
+
+  <!-- Header -->
+  <header class="header">
+    <h1 class="title">御主鉴定</h1>
+    <p class="subtitle">猜出今日的从者 · Fate/Grand Order</p>
+  </header>
+
+  <!-- Mode Tabs -->
+  <div class="mode-tabs">
+    <button class="mode-tab active" data-mode="daily" onclick="switchMode('daily')">每日挑战</button>
+    <button class="mode-tab" data-mode="unlimited" onclick="switchMode('unlimited')">无限模式</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat-item">🏆 连胜 <span class="stat-value" id="statStreak">0</span></div>
+    <div class="stat-item">✅ 胜率 <span class="stat-value" id="statWinRate">-%</span></div>
+    <div class="stat-item">📊 已玩 <span class="stat-value" id="statPlayed">0</span></div>
+  </div>
+
+  <!-- Search -->
+  <div class="search-area">
+    <div class="search-wrapper">
+      <span class="search-icon">🔍</span>
+      <input type="text" class="search-input" id="searchInput" 
+             placeholder="输入从者名称…" autocomplete="off">
+      <span class="attempt-counter">
+        <span class="current" id="attemptCurrent">0</span> / <span id="attemptMax">6</span>
+      </span>
+    </div>
+    <div class="autocomplete" id="autocomplete"></div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot correct"></div> 完全匹配</div>
+    <div class="legend-item"><div class="legend-dot close"></div> 接近</div>
+    <div class="legend-item"><div class="legend-dot wrong"></div> 不匹配</div>
+  </div>
+
+  <!-- Hint Header -->
+  <div class="hint-header">
+    <span>头像</span>
+    <span>名称</span>
+    <span>职阶</span>
+    <span>稀有度</span>
+    <span>性别</span>
+    <span>属性</span>
+    <span>宝具色</span>
+    <span>特性</span>
+  </div>
+
+  <!-- Guess List -->
+  <div class="guess-list" id="guessList"></div>
+
+  <!-- Result Panel -->
+  <div class="result-panel" id="resultPanel">
+    <div class="result-icon" id="resultIcon"></div>
+    <div class="result-title" id="resultTitle"></div>
+    <div class="result-servant-card">
+      <img class="result-servant-img" id="resultImg" src="" alt="">
+      <div class="result-servant-name" id="resultName"></div>
+      <div class="result-detail" id="resultDetail"></div>
+    </div>
+    <button class="btn" onclick="startNewGame()">⚔ 再来一局</button>
+    <button class="btn" onclick="shareResult()" style="margin-left: 8px;">📋 分享结果</button>
+  </div>
+
+</div>
+
+<!-- Help Button -->
+<button class="help-btn" onclick="toggleHelp()">?</button>
+
+<!-- Help Modal -->
+<div class="modal-overlay" id="helpModal">
+  <div class="modal">
+    <h2>◆ 游戏规则 ◆</h2>
+    <p>猜出隐藏的FGO从者！你有 <strong>6次</strong> 机会。</p>
+    <p>每次猜测后，各属性会给出颜色提示：</p>
+    <div class="example-row">
+      <div class="example-cell correct">Saber</div>
+      <span style="color:var(--fgo-text-dim);font-size:0.85em;display:flex;align-items:center;">← 职阶完全正确</span>
+    </div>
+    <div class="example-row">
+      <div class="example-cell close">4★ ↑</div>
+      <span style="color:var(--fgo-text-dim);font-size:0.85em;display:flex;align-items:center;">← 稀有度接近，箭头提示方向</span>
+    </div>
+    <div class="example-row">
+      <div class="example-cell wrong">男</div>
+      <span style="color:var(--fgo-text-dim);font-size:0.85em;display:flex;align-items:center;">← 性别不对</span>
+    </div>
+    <ul style="margin-top:12px;padding-left:20px;">
+      <li><strong>职阶</strong>：正确为绿，同为骑士/四骑职阶为黄</li>
+      <li><strong>稀有度</strong>：正确为绿，相差1星为黄，并有↑↓提示</li>
+      <li><strong>性别</strong>：正确为绿，否则为红</li>
+      <li><strong>属性</strong>（天/地/人/星/兽）：正确为绿，否则为红</li>
+      <li><strong>宝具色</strong>（B/A/Q）：正确为绿，否则为红</li>
+      <li><strong>特性</strong>：有相同特性为黄，完全匹配为绿</li>
+    </ul>
+    <p style="margin-top:16px;"><strong>每日挑战</strong>：所有人同一天面对同一个从者。<br><strong>无限模式</strong>：随机出题，尽情练习。</p>
+    <div style="text-align:center;margin-top:20px;">
+      <button class="btn" onclick="toggleHelp()">了解了</button>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="footer" style="position:relative;z-index:1;">
+  <p>御主鉴定 — 基于 Fate/Grand Order 的猜从者游戏</p>
+  <p style="margin-top:4px;">灵感来源: <a href="https://www.transfermarkt.co.uk/whoami" target="_blank">Transfermarkt WhoAmI</a> · <a href="https://xiaoce.fun/" target="_blank">猜盐</a></p>
+  <p style="margin-top:4px;">数据仅供娱乐 · ©TYPE-MOON / FGO PROJECT</p>
+</div>
+
+<script>
+// ============================================================
+//  FGO Servant Database (精选50+角色，覆盖主要职阶和稀有度)
+// ============================================================
+const SERVANTS = [
+  // Saber
+  { id: 1, name: "阿尔托莉雅", nameEn: "Altria Pendragon", class: "Saber", rarity: 5, gender: "女", attribute: "地", npColor: "B", traits: ["骑乘","龙","亚瑟王","阿尔托莉雅脸"], face: "https://static.atlasacademy.io/JP/Faces/f_1000000.png" },
+  { id: 2, name: "尼禄", nameEn: "Nero Claudius", class: "Saber", rarity: 4, gender: "女", attribute: "人", npColor: "A", traits: ["罗马","王"], face: "https://static.atlasacademy.io/JP/Faces/f_1001000.png" },
+  { id: 3, name: "莫德雷德", nameEn: "Mordred", class: "Saber", rarity: 5, gender: "女", attribute: "地", npColor: "B", traits: ["骑乘","龙","圆桌骑士"], face: "https://static.atlasacademy.io/JP/Faces/f_1003000.png" },
+  { id: 4, name: "宫本武藏", nameEn: "Miyamoto Musashi", class: "Saber", rarity: 5, gender: "女", attribute: "天", npColor: "B", traits: ["骑乘","日本"], face: "https://static.atlasacademy.io/JP/Faces/f_1011500.png" },
+  { id: 5, name: "沙条爱歌", nameEn: "Sajou Manaka", class: "Saber", rarity: 5, gender: "女", attribute: "人", npColor: "A", traits: ["王","骑乘"], face: "https://static.atlasacademy.io/JP/Faces/f_1004000.png" },
+  { id: 50, name: "迪卢木多", nameEn: "Diarmuid", class: "Saber", rarity: 4, gender: "男", attribute: "地", npColor: "A", traits: ["骑乘","凯尔特"], face: "https://static.atlasacademy.io/JP/Faces/f_1012000.png" },
+  
+  // Archer
+  { id: 6, name: "吉尔伽美什", nameEn: "Gilgamesh", class: "Archer", rarity: 5, gender: "男", attribute: "天", npColor: "B", traits: ["神性","王","骑乘"], face: "https://static.atlasacademy.io/JP/Faces/f_2000000.png" },
+  { id: 7, name: "伊什塔尔", nameEn: "Ishtar", class: "Archer", rarity: 5, gender: "女", attribute: "天", npColor: "B", traits: ["神性","骑乘","远坂"], face: "https://static.atlasacademy.io/JP/Faces/f_2005000.png" },
+  { id: 8, name: "织田信长", nameEn: "Oda Nobunaga", class: "Archer", rarity: 4, gender: "女", attribute: "人", npColor: "B", traits: ["骑乘","王","日本"], face: "https://static.atlasacademy.io/JP/Faces/f_2002000.png" },
+  { id: 9, name: "阿塔兰忒", nameEn: "Atalante", class: "Archer", rarity: 4, gender: "女", attribute: "地", npColor: "Q", traits: ["骑乘","阿尔戈船"], face: "https://static.atlasacademy.io/JP/Faces/f_2001000.png" },
+  { id: 10, name: "卫宫", nameEn: "EMIYA", class: "Archer", rarity: 4, gender: "男", attribute: "人", npColor: "B", traits: ["骑乘","卫宫"], face: "https://static.atlasacademy.io/JP/Faces/f_2000200.png" },
+  
+  // Lancer
+  { id: 11, name: "斯卡哈", nameEn: "Scathach", class: "Lancer", rarity: 5, gender: "女", attribute: "星", npColor: "Q", traits: ["神性","凯尔特"], face: "https://static.atlasacademy.io/JP/Faces/f_3003000.png" },
+  { id: 12, name: "库丘林", nameEn: "Cu Chulainn", class: "Lancer", rarity: 3, gender: "男", attribute: "天", npColor: "B", traits: ["神性","凯尔特"], face: "https://static.atlasacademy.io/JP/Faces/f_3000000.png" },
+  { id: 13, name: "布伦希尔德", nameEn: "Brynhildr", class: "Lancer", rarity: 5, gender: "女", attribute: "天", npColor: "B", traits: ["神性","骑乘","北欧"], face: "https://static.atlasacademy.io/JP/Faces/f_3003500.png" },
+  { id: 14, name: "恩奇都", nameEn: "Enkidu", class: "Lancer", rarity: 5, gender: "—", attribute: "天", npColor: "B", traits: ["神性"], face: "https://static.atlasacademy.io/JP/Faces/f_3005000.png" },
+  { id: 15, name: "贞德·Alter·Santa·Lily", nameEn: "Janta", class: "Lancer", rarity: 4, gender: "女", attribute: "天", npColor: "B", traits: ["神性","贞德"], face: "https://static.atlasacademy.io/JP/Faces/f_3004500.png" },
+  
+  // Rider
+  { id: 16, name: "伊斯坎达尔", nameEn: "Iskandar", class: "Rider", rarity: 5, gender: "男", attribute: "人", npColor: "B", traits: ["骑乘","王","神性"], face: "https://static.atlasacademy.io/JP/Faces/f_4002000.png" },
+  { id: 17, name: "美杜莎", nameEn: "Medusa", class: "Rider", rarity: 3, gender: "女", attribute: "地", npColor: "Q", traits: ["骑乘","神性"], face: "https://static.atlasacademy.io/JP/Faces/f_4000400.png" },
+  { id: 18, name: "弗朗西斯·德雷克", nameEn: "Francis Drake", class: "Rider", rarity: 5, gender: "女", attribute: "星", npColor: "B", traits: ["骑乘"], face: "https://static.atlasacademy.io/JP/Faces/f_4001000.png" },
+  { id: 19, name: "阿斯托尔福", nameEn: "Astolfo", class: "Rider", rarity: 4, gender: "—", attribute: "地", npColor: "Q", traits: ["骑乘","圆桌骑士"], face: "https://static.atlasacademy.io/JP/Faces/f_4003000.png" },
+  { id: 20, name: "坂田金时(骑)", nameEn: "Kintoki Rider", class: "Rider", rarity: 4, gender: "男", attribute: "地", npColor: "Q", traits: ["骑乘","神性","日本"], face: "https://static.atlasacademy.io/JP/Faces/f_4004000.png" },
+  
+  // Caster
+  { id: 21, name: "梅林", nameEn: "Merlin", class: "Caster", rarity: 5, gender: "男", attribute: "地", npColor: "A", traits: ["骑乘","圆桌骑士"], face: "https://static.atlasacademy.io/JP/Faces/f_5004000.png" },
+  { id: 22, name: "诸葛孔明", nameEn: "Zhuge Liang", class: "Caster", rarity: 5, gender: "男", attribute: "人", npColor: "A", traits: ["骑乘"], face: "https://static.atlasacademy.io/JP/Faces/f_5001000.png" },
+  { id: 23, name: "玉藻前", nameEn: "Tamamo-no-Mae", class: "Caster", rarity: 5, gender: "女", attribute: "天", npColor: "A", traits: ["神性","日本"], face: "https://static.atlasacademy.io/JP/Faces/f_5003000.png" },
+  { id: 24, name: "伊莉雅", nameEn: "Illya", class: "Caster", rarity: 5, gender: "女", attribute: "人", npColor: "B", traits: ["卫宫"], face: "https://static.atlasacademy.io/JP/Faces/f_5005500.png" },
+  { id: 25, name: "安徒生", nameEn: "Andersen", class: "Caster", rarity: 2, gender: "男", attribute: "人", npColor: "A", traits: [], face: "https://static.atlasacademy.io/JP/Faces/f_5001500.png" },
+  { id: 26, name: "斯卡蒂", nameEn: "Skadi", class: "Caster", rarity: 5, gender: "女", attribute: "天", npColor: "A", traits: ["神性","北欧"], face: "https://static.atlasacademy.io/JP/Faces/f_5008000.png" },
+  
+  // Assassin
+  { id: 27, name: "杰克", nameEn: "Jack the Ripper", class: "Assassin", rarity: 5, gender: "女", attribute: "地", npColor: "Q", traits: [], face: "https://static.atlasacademy.io/JP/Faces/f_6002000.png" },
+  { id: 28, name: "酒吞童子", nameEn: "Shuten Douji", class: "Assassin", rarity: 5, gender: "女", attribute: "地", npColor: "A", traits: ["神性","魔性","日本"], face: "https://static.atlasacademy.io/JP/Faces/f_6003000.png" },
+  { id: 29, name: "佐佐木小次郎", nameEn: "Sasaki Kojirou", class: "Assassin", rarity: 1, gender: "男", attribute: "人", npColor: "Q", traits: ["日本"], face: "https://static.atlasacademy.io/JP/Faces/f_6000200.png" },
+  { id: 30, name: "冲田总司", nameEn: "Okita Souji", class: "Assassin", rarity: 4, gender: "女", attribute: "人", npColor: "Q", traits: ["骑乘","日本"], face: "https://static.atlasacademy.io/JP/Faces/f_6004000.png" },
+  { id: 51, name: "荆轲", nameEn: "Jing Ke", class: "Assassin", rarity: 3, gender: "女", attribute: "人", npColor: "Q", traits: [], face: "https://static.atlasacademy.io/JP/Faces/f_6000800.png" },
+  
+  // Berserker
+  { id: 31, name: "赫拉克勒斯", nameEn: "Heracles", class: "Berserker", rarity: 4, gender: "男", attribute: "天", npColor: "B", traits: ["神性","阿尔戈船"], face: "https://static.atlasacademy.io/JP/Faces/f_7000000.png" },
+  { id: 32, name: "库丘林(Alter)", nameEn: "Cu Alter", class: "Berserker", rarity: 5, gender: "男", attribute: "地", npColor: "B", traits: ["凯尔特","骑乘"], face: "https://static.atlasacademy.io/JP/Faces/f_7003000.png" },
+  { id: 33, name: "源赖光", nameEn: "Minamoto no Raikou", class: "Berserker", rarity: 5, gender: "女", attribute: "天", npColor: "B", traits: ["神性","骑乘","日本"], face: "https://static.atlasacademy.io/JP/Faces/f_7004000.png" },
+  { id: 34, name: "清姬", nameEn: "Kiyohime", class: "Berserker", rarity: 3, gender: "女", attribute: "地", npColor: "B", traits: ["龙","日本"], face: "https://static.atlasacademy.io/JP/Faces/f_7000600.png" },
+  { id: 35, name: "弗兰肯斯坦", nameEn: "Frankenstein", class: "Berserker", rarity: 4, gender: "女", attribute: "地", npColor: "Q", traits: [], face: "https://static.atlasacademy.io/JP/Faces/f_7001000.png" },
+  { id: 36, name: "阿周那(Alter)", nameEn: "Arjuna Alter", class: "Berserker", rarity: 5, gender: "男", attribute: "天", npColor: "B", traits: ["神性"], face: "https://static.atlasacademy.io/JP/Faces/f_7008000.png" },
+  
+  // Extra Classes
+  { id: 37, name: "贞德", nameEn: "Jeanne d'Arc", class: "Ruler", rarity: 5, gender: "女", attribute: "星", npColor: "A", traits: ["贞德","骑乘"], face: "https://static.atlasacademy.io/JP/Faces/f_8000000.png" },
+  { id: 38, name: "天草四郎", nameEn: "Amakusa Shirou", class: "Ruler", rarity: 5, gender: "男", attribute: "人", npColor: "B", traits: ["日本"], face: "https://static.atlasacademy.io/JP/Faces/f_8001000.png" },
+  { id: 39, name: "贞德(Alter)", nameEn: "Jeanne Alter", class: "Avenger", rarity: 5, gender: "女", attribute: "人", npColor: "B", traits: ["贞德","龙"], face: "https://static.atlasacademy.io/JP/Faces/f_9001000.png" },
+  { id: 40, name: "岩窟王", nameEn: "Edmond Dantes", class: "Avenger", rarity: 5, gender: "男", attribute: "人", npColor: "Q", traits: [], face: "https://static.atlasacademy.io/JP/Faces/f_9000000.png" },
+  { id: 41, name: "BB", nameEn: "BB", class: "Moon Cancer", rarity: 5, gender: "女", attribute: "人", npColor: "A", traits: [], face: "https://static.atlasacademy.io/JP/Faces/f_23500100.png" },
+  { id: 42, name: "冈田以藏", nameEn: "Okada Izo", class: "Assassin", rarity: 3, gender: "男", attribute: "人", npColor: "A", traits: ["日本"], face: "https://static.atlasacademy.io/JP/Faces/f_6005000.png" },
+  { id: 43, name: "玛修", nameEn: "Mash Kyrielight", class: "Shielder", rarity: 3, gender: "女", attribute: "地", npColor: "A", traits: ["骑乘"], face: "https://static.atlasacademy.io/JP/Faces/f_8000100.png" },
+  { id: 44, name: "始皇帝", nameEn: "Qin Shi Huang", class: "Ruler", rarity: 5, gender: "—", attribute: "人", npColor: "A", traits: ["王"], face: "https://static.atlasacademy.io/JP/Faces/f_8003000.png" },
+  { id: 45, name: "杨贵妃", nameEn: "Yang Guifei", class: "Foreigner", rarity: 5, gender: "女", attribute: "星", npColor: "A", traits: ["神性"], face: "https://static.atlasacademy.io/JP/Faces/f_25000300.png" },
+  { id: 46, name: "葛饰北斋", nameEn: "Katsushika Hokusai", class: "Foreigner", rarity: 5, gender: "女", attribute: "人", npColor: "A", traits: ["日本"], face: "https://static.atlasacademy.io/JP/Faces/f_25000000.png" },
+  { id: 47, name: "空想树的巫女", nameEn: "Koyanskaya of Light", class: "Assassin", rarity: 5, gender: "女", attribute: "天", npColor: "B", traits: ["骑乘","魔性"], face: "https://static.atlasacademy.io/JP/Faces/f_6007000.png" },
+  { id: 48, name: "光之克扬斯卡娅", nameEn: "Koyanskaya of Light", class: "Assassin", rarity: 5, gender: "女", attribute: "地", npColor: "B", traits: ["骑乘","魔性"], face: "https://static.atlasacademy.io/JP/Faces/f_6007000.png" },
+  { id: 49, name: "奥伯龙", nameEn: "Oberon", class: "Pretender", rarity: 5, gender: "男", attribute: "地", npColor: "A", traits: ["骑乘","妖精"], face: "https://static.atlasacademy.io/JP/Faces/f_27500100.png" },
+  { id: 52, name: "阿比盖尔", nameEn: "Abigail Williams", class: "Foreigner", rarity: 5, gender: "女", attribute: "星", npColor: "B", traits: [], face: "https://static.atlasacademy.io/JP/Faces/f_25000100.png" },
+  { id: 53, name: "所罗门", nameEn: "Solomon", class: "Caster", rarity: 5, gender: "男", attribute: "人", npColor: "A", traits: ["王","骑乘"], face: "https://static.atlasacademy.io/JP/Faces/f_5000000.png" },
+  { id: 54, name: "�的长城·芥雏子", nameEn: "Sei Shonagon", class: "Archer", rarity: 5, gender: "女", attribute: "人", npColor: "A", traits: ["日本"], face: "https://static.atlasacademy.io/JP/Faces/f_2009000.png" },
+  { id: 55, name: "阿尔托莉雅(Caster)", nameEn: "Castoria", class: "Caster", rarity: 5, gender: "女", attribute: "地", npColor: "A", traits: ["骑乘","阿尔托莉雅脸","妖精"], face: "https://static.atlasacademy.io/JP/Faces/f_5009000.png" },
+];
+
+// Remove duplicate (48 is same as 47)
+const servantDB = SERVANTS.filter((s, i, arr) => i === arr.findIndex(t => t.name === s.name));
+
+// ============================================================
+//  Game State
+// ============================================================
+const MAX_ATTEMPTS = 6;
+let currentMode = 'daily';
+let targetServant = null;
+let guesses = [];
+let gameOver = false;
+let guessedIds = new Set();
+
+// Stats persistence
+function loadStats() {
+  try {
+    return JSON.parse(localStorage.getItem('fgo-guess-stats')) || { played: 0, wins: 0, streak: 0, lastDaily: '' };
+  } catch { return { played: 0, wins: 0, streak: 0, lastDaily: '' }; }
+}
+function saveStats(stats) { localStorage.setItem('fgo-guess-stats', JSON.stringify(stats)); }
+
+function updateStatsUI() {
+  const stats = loadStats();
+  document.getElementById('statStreak').textContent = stats.streak;
+  document.getElementById('statWinRate').textContent = stats.played > 0 ? Math.round(stats.wins / stats.played * 100) + '%' : '-%';
+  document.getElementById('statPlayed').textContent = stats.played;
+}
+
+// ============================================================
+//  Daily Seed (same puzzle for everyone each day)
+// ============================================================
+function getDailySeed() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function seededRandom(seed) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = ((h << 5) - h + seed.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h) % servantDB.length;
+}
+
+// ============================================================
+//  Class Grouping for "close" hint
+// ============================================================
+const KNIGHT_CLASSES = ['Saber', 'Archer', 'Lancer'];
+const CAVALRY_CLASSES = ['Rider', 'Caster', 'Assassin', 'Berserker'];
+const EXTRA_CLASSES = ['Ruler', 'Avenger', 'Moon Cancer', 'Alter Ego', 'Foreigner', 'Pretender', 'Shielder'];
+
+function getClassGroup(cls) {
+  if (KNIGHT_CLASSES.includes(cls)) return 'knight';
+  if (CAVALRY_CLASSES.includes(cls)) return 'cavalry';
+  return 'extra';
+}
+
+// ============================================================
+//  Compare Logic
+// ============================================================
+function compareServants(guess, target) {
+  const result = {};
+
+  // Class
+  if (guess.class === target.class) {
+    result.class = { status: 'correct', display: guess.class };
+  } else if (getClassGroup(guess.class) === getClassGroup(target.class)) {
+    result.class = { status: 'close', display: guess.class };
+  } else {
+    result.class = { status: 'wrong', display: guess.class };
+  }
+
+  // Rarity
+  if (guess.rarity === target.rarity) {
+    result.rarity = { status: 'correct', display: guess.rarity + '★' };
+  } else if (Math.abs(guess.rarity - target.rarity) === 1) {
+    const arrow = guess.rarity < target.rarity ? ' ↑' : ' ↓';
+    result.rarity = { status: 'close', display: guess.rarity + '★' + arrow };
+  } else {
+    const arrow = guess.rarity < target.rarity ? ' ↑' : ' ↓';
+    result.rarity = { status: 'wrong', display: guess.rarity + '★' + arrow };
+  }
+
+  // Gender
+  result.gender = {
+    status: guess.gender === target.gender ? 'correct' : 'wrong',
+    display: guess.gender
+  };
+
+  // Attribute
+  result.attribute = {
+    status: guess.attribute === target.attribute ? 'correct' : 'wrong',
+    display: guess.attribute
+  };
+
+  // NP Color
+  const npLabels = { B: 'Buster', A: 'Arts', Q: 'Quick' };
+  result.npColor = {
+    status: guess.npColor === target.npColor ? 'correct' : 'wrong',
+    display: npLabels[guess.npColor] || guess.npColor
+  };
+
+  // Traits
+  const gTraits = new Set(guess.traits);
+  const tTraits = new Set(target.traits);
+  const overlap = [...gTraits].filter(t => tTraits.has(t));
+  
+  if (guess.traits.length === target.traits.length && overlap.length === target.traits.length && target.traits.length > 0) {
+    result.traits = { status: 'correct', display: overlap.length > 0 ? overlap[0] : '—' };
+  } else if (overlap.length > 0) {
+    result.traits = { status: 'close', display: overlap[0] };
+  } else {
+    const display = guess.traits.length > 0 ? guess.traits[0] : '—';
+    result.traits = { status: 'wrong', display: display };
+  }
+
+  return result;
+}
+
+// ============================================================
+//  Render Guess Row
+// ============================================================
+function renderGuessRow(guess, comparison) {
+  const row = document.createElement('div');
+  row.className = 'guess-row';
+
+  // Avatar
+  const avatarCell = document.createElement('div');
+  avatarCell.className = 'guess-cell';
+  avatarCell.style.padding = '2px';
+  avatarCell.style.background = 'transparent';
+  avatarCell.style.border = 'none';
+  const img = document.createElement('img');
+  img.className = 'guess-avatar';
+  img.src = guess.face;
+  img.alt = guess.name;
+  img.onerror = function() { 
+    this.style.display = 'none';
+    avatarCell.textContent = '🎭';
+    avatarCell.style.fontSize = '1.5em';
+  };
+  avatarCell.appendChild(img);
+  row.appendChild(avatarCell);
+
+  // Name
+  const nameCell = document.createElement('div');
+  nameCell.className = 'guess-cell guess-name-cell';
+  nameCell.style.background = 'rgba(20, 28, 50, 0.6)';
+  nameCell.style.border = '1px solid ' + 'var(--fgo-border)';
+  nameCell.textContent = guess.name;
+  row.appendChild(nameCell);
+
+  // Hint cells with staggered animation
+  const fields = ['class', 'rarity', 'gender', 'attribute', 'npColor', 'traits'];
+  fields.forEach((field, idx) => {
+    const cell = document.createElement('div');
+    const comp = comparison[field];
+    cell.className = `guess-cell ${comp.status}`;
+    cell.textContent = comp.display;
+    cell.style.animationDelay = `${idx * 0.1}s`;
+    cell.classList.add('flip-in');
+    row.appendChild(cell);
+  });
+
+  return row;
+}
+
+// ============================================================
+//  Make a Guess
+// ============================================================
+function makeGuess(servant) {
+  if (gameOver || guesses.length >= MAX_ATTEMPTS) return;
+  if (guessedIds.has(servant.id)) return;
+
+  guessedIds.add(servant.id);
+  guesses.push(servant);
+
+  const comparison = compareServants(servant, targetServant);
+  const row = renderGuessRow(servant, comparison);
+  document.getElementById('guessList').appendChild(row);
+
+  document.getElementById('attemptCurrent').textContent = guesses.length;
+
+  // Clear input
+  document.getElementById('searchInput').value = '';
+  document.getElementById('autocomplete').classList.remove('show');
+
+  // Check win/lose
+  if (servant.id === targetServant.id) {
+    endGame(true);
+  } else if (guesses.length >= MAX_ATTEMPTS) {
+    endGame(false);
+  }
+}
+
+// ============================================================
+//  End Game
+// ============================================================
+function endGame(won) {
+  gameOver = true;
+  document.getElementById('searchInput').disabled = true;
+
+  const stats = loadStats();
+  stats.played++;
+  if (won) {
+    stats.wins++;
+    stats.streak++;
+  } else {
+    stats.streak = 0;
+  }
+  if (currentMode === 'daily') stats.lastDaily = getDailySeed();
+  saveStats(stats);
+  updateStatsUI();
+
+  // Show result panel
+  const panel = document.getElementById('resultPanel');
+  document.getElementById('resultIcon').textContent = won ? '🏆' : '💀';
+  const titleEl = document.getElementById('resultTitle');
+  titleEl.textContent = won ? `${guesses.length}次猜中！御主真是天才！` : '圣杯战争失败…';
+  titleEl.className = 'result-title ' + (won ? 'win' : 'lose');
+  
+  document.getElementById('resultImg').src = targetServant.face;
+  document.getElementById('resultImg').onerror = function() { this.style.display = 'none'; };
+  document.getElementById('resultName').textContent = `${targetServant.name} (${targetServant.nameEn})`;
+  document.getElementById('resultDetail').innerHTML = 
+    `${targetServant.class} · ${targetServant.rarity}★ · ${targetServant.gender} · ${targetServant.attribute}属性 · ${{B:'Buster',A:'Arts',Q:'Quick'}[targetServant.npColor]}宝具`;
+
+  panel.classList.add('show');
+
+  // Scroll to result
+  setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+}
+
+// ============================================================
+//  Share Result
+// ============================================================
+function shareResult() {
+  const won = guesses[guesses.length - 1]?.id === targetServant.id;
+  const emoji = guesses.map(g => {
+    const c = compareServants(g, targetServant);
+    return Object.values(c).map(v => v.status === 'correct' ? '🟩' : v.status === 'close' ? '🟨' : '🟥').join('');
+  }).join('\n');
+  
+  const text = `御主鉴定 — FGO猜从者 ${currentMode === 'daily' ? getDailySeed() : '无限模式'}\n${won ? guesses.length : 'X'}/${MAX_ATTEMPTS}\n\n${emoji}`;
+  
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('已复制到剪贴板！快去分享给其他御主吧～');
+    });
+  } else {
+    prompt('复制以下内容分享:', text);
+  }
+}
+
+// ============================================================
+//  Autocomplete
+// ============================================================
+let selectedAcIdx = -1;
+
+function updateAutocomplete(query) {
+  const ac = document.getElementById('autocomplete');
+  if (!query || query.length < 1) {
+    ac.classList.remove('show');
+    return;
+  }
+
+  const q = query.toLowerCase();
+  const matches = servantDB.filter(s => 
+    !guessedIds.has(s.id) &&
+    (s.name.toLowerCase().includes(q) || 
+     s.nameEn.toLowerCase().includes(q) ||
+     s.class.toLowerCase().includes(q))
+  ).slice(0, 8);
+
+  if (matches.length === 0) {
+    ac.classList.remove('show');
+    return;
+  }
+
+  selectedAcIdx = -1;
+  ac.innerHTML = matches.map((s, i) => `
+    <div class="ac-item" data-idx="${i}" onclick="selectServant(${s.id})">
+      <img class="ac-avatar" src="${s.face}" alt="${s.name}" 
+           onerror="this.style.display='none'">
+      <div class="ac-info">
+        <div class="ac-name">${highlightMatch(s.name, query)} <span style="color:var(--fgo-text-dim);font-size:0.8em;">${s.nameEn}</span></div>
+        <div class="ac-meta">${s.class} · ${'★'.repeat(s.rarity)}</div>
+      </div>
+      <div class="ac-stars" style="color:${getRarityColor(s.rarity)}">${s.rarity}★</div>
+    </div>
+  `).join('');
+
+  ac.classList.add('show');
+}
+
+function highlightMatch(text, query) {
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return text;
+  return text.slice(0, idx) + 
+    `<strong style="color:var(--fgo-gold)">${text.slice(idx, idx + query.length)}</strong>` + 
+    text.slice(idx + query.length);
+}
+
+function getRarityColor(r) {
+  return { 5: 'var(--star5)', 4: 'var(--star4)', 3: 'var(--star3)', 2: 'var(--star2)', 1: 'var(--star1)' }[r] || 'var(--fgo-text)';
+}
+
+function selectServant(id) {
+  const s = servantDB.find(s => s.id === id);
+  if (s) makeGuess(s);
+}
+
+// ============================================================
+//  Keyboard Navigation
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('searchInput');
+  const ac = document.getElementById('autocomplete');
+
+  input.addEventListener('input', () => updateAutocomplete(input.value.trim()));
+  
+  input.addEventListener('keydown', (e) => {
+    const items = ac.querySelectorAll('.ac-item');
+    if (!ac.classList.contains('show') || items.length === 0) {
+      if (e.key === 'Enter') {
+        // Try first match
+        const q = input.value.trim().toLowerCase();
+        if (q) {
+          const match = servantDB.find(s => 
+            !guessedIds.has(s.id) && 
+            (s.name.toLowerCase() === q || s.nameEn.toLowerCase() === q)
+          );
+          if (match) makeGuess(match);
+        }
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      selectedAcIdx = Math.min(selectedAcIdx + 1, items.length - 1);
+      items.forEach((it, i) => it.classList.toggle('selected', i === selectedAcIdx));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      selectedAcIdx = Math.max(selectedAcIdx - 1, 0);
+      items.forEach((it, i) => it.classList.toggle('selected', i === selectedAcIdx));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (selectedAcIdx >= 0 && items[selectedAcIdx]) {
+        items[selectedAcIdx].click();
+      } else if (items.length > 0) {
+        items[0].click();
+      }
+    } else if (e.key === 'Escape') {
+      ac.classList.remove('show');
+    }
+  });
+
+  // Click outside to close
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.search-area')) {
+      ac.classList.remove('show');
+    }
+  });
+});
+
+// ============================================================
+//  Mode Switch
+// ============================================================
+function switchMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.mode === mode);
+  });
+  startNewGame();
+}
+
+// ============================================================
+//  Start / Reset Game
+// ============================================================
+function startNewGame() {
+  guesses = [];
+  guessedIds.clear();
+  gameOver = false;
+
+  document.getElementById('guessList').innerHTML = '';
+  document.getElementById('searchInput').disabled = false;
+  document.getElementById('searchInput').value = '';
+  document.getElementById('attemptCurrent').textContent = '0';
+  document.getElementById('resultPanel').classList.remove('show');
+
+  if (currentMode === 'daily') {
+    const seed = getDailySeed();
+    const stats = loadStats();
+    // Check if already played today
+    if (stats.lastDaily === seed) {
+      // Allow replay in daily mode too for now
+    }
+    targetServant = servantDB[seededRandom(seed + '-fgo-v1')];
+  } else {
+    targetServant = servantDB[Math.floor(Math.random() * servantDB.length)];
+  }
+
+  document.getElementById('searchInput').focus();
+  updateStatsUI();
+}
+
+// ============================================================
+//  Help Modal
+// ============================================================
+function toggleHelp() {
+  document.getElementById('helpModal').classList.toggle('show');
+}
+
+// ============================================================
+//  Particles
+// ============================================================
+function createParticles() {
+  const container = document.getElementById('particles');
+  for (let i = 0; i < 30; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.width = p.style.height = (1 + Math.random() * 2) + 'px';
+    p.style.animationDuration = (8 + Math.random() * 12) + 's';
+    p.style.animationDelay = Math.random() * 10 + 's';
+    container.appendChild(p);
+  }
+}
+
+// ============================================================
+//  Init
+// ============================================================
+window.addEventListener('load', () => {
+  createParticles();
+  startNewGame();
+
+  // Hide loading screen
+  setTimeout(() => {
+    document.getElementById('loadingScreen').classList.add('hide');
+    setTimeout(() => document.getElementById('loadingScreen').style.display = 'none', 600);
+  }, 800);
+
+  // Show help on first visit
+  if (!localStorage.getItem('fgo-guess-helped')) {
+    setTimeout(() => toggleHelp(), 1200);
+    localStorage.setItem('fgo-guess-helped', '1');
+  }
+});
+</script>
+
+</body>
+</html>
